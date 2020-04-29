@@ -18,11 +18,19 @@ public:
     MainWindow(QWidget *parent = nullptr);
     ~MainWindow();
 
+
+protected:
+    void keyPressEvent(QKeyEvent *event);
+
 private slots:
+
     void on_pushButton_clicked();
+
     void MySlot();
+
     void solve_slot();
 
+    void follower();
 
     void on_pushButton_2_clicked();
 
@@ -32,13 +40,19 @@ private slots:
 
     void on_actionDark_triggered();
 
+    void on_radioButton_toggled(bool checked);
+
 private:
     Ui::MainWindow *ui;
 
     QGraphicsScene *scene;
 
+    // Generator timer
     QTimer *timer;
+    // Solve timer
     QTimer *timer1;
+    // follower timer
+    QTimer *timer2;
 
     int maze_width;
     int maze_height;
@@ -50,6 +64,11 @@ private:
     int memorize_y;
     int memorize_x;
     int count = 1;
+    int square_moved = 0;
+    int element_pos = 0;
+
+    int timer_is_on = 0;
+    int timer1_is_on = 0;
 
     QPen wall_pen;
     QBrush maze_background_color;
@@ -58,27 +77,65 @@ private:
     QBrush window_background_color;
     QBrush head;
 
+    // if maze is generated - true, otherwise false.
     bool unvisited_squares();
 
+    // returns square which hasn't been visited yet
     QVector < QGraphicsLineItem* > check_neighbours(int y, int x);
+
     QVector < QGraphicsLineItem* > legal_move(int y, int x);
 
+    // if users move with green square is legal - true , else false
+    bool is_legal_move(int y, int x, int y1, int x1);
+
+    // use - when you move to the new location, repaint your previous square.
+    QPair <int, int> previous_square_cord;
+
+    // if you reach lower right corner, you win the game
+    bool won_game();
+
+    // vector that has curret || next square, which represents 4 walls
     QVector < QGraphicsLineItem* > next_square;
     QVector < QGraphicsLineItem* > current_square;
 
+    // using for backtracking
     QVector < QPair <int, int> > memorize;
     QVector < QPair <int, int> > memorize_solve_function;
+    QVector < QPair <int, int> > save_path;
 
-
+    // background colors, using to change colors of paths.
     QVector < QVector < QGraphicsRectItem* > > background_color_squares;
     void reset_background_color();
 
+    // stores already visited walls || resets visited walls to 0
     QVector < QVector < int > > visited_walls;
     void reset_visited_walls();
 
+    // 3d vector that stores coordinates of "squares" which are a vector that has QGraphicsLineItems inside, which represent walls
     QVector < QVector < QVector <QGraphicsLineItem* > > > walls;
     void reset_walls();
 
+    // Graph implementation
+
+   // QVector < QVector < int > > graph;
+   // void count_vertices();
+   // QVector < QVector <int> > stored_vertices;
+    int vertices = 0;
+    void graph_maker();
+    int count_walls(int y, int x);
+    QPair <int, int>  dijkstra_algorithm(int start_y, int start_x, int end_y, int end_x);
+    QList <int> *my_list;
+    QVector <QPair <int, int> > my_path;
+    int current_vertice;
+    int next_vertice;
+    QVector < int > visited_vertices;
+    int random_neighbour_vertice(int pos);
+    int current_red_y;
+    int current_red_x;
+    int next_red_y;
+    int next_red_x;
+
+   // repaint instantly maze || solve
     void instant_maze_generation();
     void instant_solve();
 };
