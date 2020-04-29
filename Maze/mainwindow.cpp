@@ -39,7 +39,7 @@ MainWindow::MainWindow(QWidget *parent)
     ui->setupUi(this);
 
 
-    int random_square_size = 110;  // (qrand() & 150) + 20;  (qrand() % 150) + 20;
+    int random_square_size =  (qrand() % 150) + 20;
     maze_width = 1300 / random_square_size;
     maze_height = 700 / random_square_size;
     square_size = random_square_size;
@@ -141,15 +141,17 @@ MainWindow::MainWindow(QWidget *parent)
     timer2 = new QTimer(this);
     connect(timer2, SIGNAL(timeout()), this, SLOT(follower()));
 
-    timer2->start(200);
+    timer2->start(150);
 
     previous_square_cord = {0, 0};
+
 }
 
 MainWindow::~MainWindow()
 {
     delete ui;
 }
+
 
 
 void MainWindow::on_pushButton_clicked()
@@ -528,6 +530,8 @@ void MainWindow::instant_maze_generation()
             background_color_squares[maze_height - 1][maze_width - 1]->setBrush(last_square_background_color);
             current_square_y = 0;
             current_square_x = 0;
+
+            graph_maker();
             break;
         }
     }
@@ -632,7 +636,7 @@ void MainWindow::keyPressEvent(QKeyEvent *event)
         }break;
     }
     if (won_game()){
-
+        QMessageBox::about(this, "t", "You won!!!");
         on_pushButton_3_clicked();
     }
 }
@@ -671,15 +675,25 @@ void MainWindow::on_pushButton_3_clicked()
 {
     reset_visited_walls();
     reset_background_color();
+    reset_walls();
+
     memorize.resize(0);
     memorize_solve_function.resize(0);
-    reset_walls();
+
     current_square_y = 0;
     current_square_x = 0;
+
     previous_square_cord = {0, 0};
-    save_path.resize(0);
+
     square_moved = 0;
     element_pos = 0;
+
+    // reset follower coordinates
+    current_red_y = 0;
+    current_red_x = 0;
+    next_red_x = 0;
+    next_red_y = 0;
+    timer2->start(150);
 }
 
 void MainWindow::on_actiontest_triggered()
@@ -717,17 +731,38 @@ void MainWindow::on_radioButton_toggled(bool checked)
     }
 }
 
+
+
 void MainWindow::follower()
 {
     if (square_moved >= 5){
+
         int y = current_square_y;
         int x = current_square_x;
-        background_color_squares[current_red_y][current_red_x]->setBrush((QColor(28, 37, 65)));
-        next_red_y = dijkstra_algorithm(current_red_y, current_red_x, y, x).first;
-        next_red_x = dijkstra_algorithm(current_red_y, current_red_x, y, x).second;
-        background_color_squares[next_red_y][next_red_x]->setBrush(head);
+
+        background_color_squares[current_red_y][current_red_x]->setBrush(maze_background_color);
+
+        next_red_y = path_finder(current_red_y, current_red_x, y, x).first;
+        next_red_x = path_finder(current_red_y, current_red_x, y, x).second;
+
+        if (next_red_y == -1 && next_red_x == -1){
+            timer2->stop();
+            on_pushButton_3_clicked();
+
+            QMessageBox *box = new QMessageBox(this);
+            box->setText("You lost!!!");
+            box->show();
+
+        } else
+            background_color_squares[next_red_y][next_red_x]->setBrush(head);
+
         current_red_y = next_red_y;
         current_red_x = next_red_x;
+
+    }
+
+    if (square_moved == 4){
+        background_color_squares[current_red_y][current_red_x]->setBrush(head);
     }
 
 }
@@ -739,37 +774,36 @@ void MainWindow::graph_maker()
    Graph my_graph(maze_width * maze_height);
    for (int y = 0; y < maze_height; y++){
        for (int x = 0; x < maze_width; x++){
+
            visited_walls[y][x] = 1;
+
            if ( walls[y][x][0]->pen() == Qt::NoPen && visited_walls[y - 1][x] == 0){
-              // visited_walls[y - 1][x] = 1;
                my_graph.addEdge(pos, pos - maze_width);
 
            }
+
            if ( walls[y][x][1]->pen() == Qt::NoPen && visited_walls[y][x - 1] == 0 ){
-              // visited_walls[y][x - 1] = 1;
                my_graph.addEdge(pos, pos + 1);
 
            }
+
            if ( walls[y][x][2]->pen() == Qt::NoPen && visited_walls[y][x + 1] == 0 ){
-              // visited_walls[y][x + 1] = 1;
                my_graph.addEdge(pos, pos + 1);
 
            }
+
            if ( walls[y][x][3]->pen() == Qt::NoPen && visited_walls[y + 1][x] == 0 ){
-              // visited_walls[y + 1][x] = 1;
                my_graph.addEdge(pos, pos + maze_width);
            }
+
            pos++;
        }
    }
+
    my_list = my_graph.get_list();
 
-//   QVector <QPair <int, int> >test = dijkstra_algorithm(0, 0, maze_height - 1, maze_width - 1);
+//   QPair <int, int> test = path_finder(0, 0, 0, 0);
 //   QString s;
-//   for (int i = 0; i < test.size(); i++){
-//       s.append("(" + QString::number(test[i].first) + ", " + QString::number(test[i].second) + ")" + "\n");
-//   }
-//   QMessageBox::about(this, "t", s);
 
 }
 
@@ -786,8 +820,13 @@ int MainWindow::count_walls(int y, int x)
 
 
 
-QPair<int, int>  MainWindow::dijkstra_algorithm(int start_y, int start_x, int end_y, int end_x)
+QPair<int, int>  MainWindow::path_finder(int start_y, int start_x, int end_y, int end_x)
 {
+    // if catched
+    if ( start_y - end_y == 0 && start_x - end_x == 0 ){
+        return {-1,-1};
+    }
+
     visited_vertices.resize(0);
     for (int i = 0;i < maze_width * maze_height; i++){
         visited_vertices.push_back(0);
@@ -823,7 +862,13 @@ QPair<int, int>  MainWindow::dijkstra_algorithm(int start_y, int start_x, int en
 
         // if finds the square, return it
         if (next_vertice == graph_end_index){
-            return my_path[1];
+
+            if (my_path.size() > 1){
+                return my_path[1];
+            }else {
+                return {-1, -1};
+            }
+
         }
     }
 
@@ -866,29 +911,8 @@ int MainWindow::random_neighbour_vertice(int pos)
 
 
 
-
-
-
-
-
-//void MainWindow::count_vertices()
-//{
-//    vertices = 0;
-//    for (int y = 0; y < maze_height; y++){
-//        for (int x = 0; x < maze_width; x++){
-
-//            // start && end position is always a vertice
-//            if ((y == 0 && x == 0) || (y == maze_height - 1 && x == maze_width - 1)){
-//                vertices++;
-//            }
-//            // counts walls which doesn't have wall/border, ups:)
-//            else if (count_walls(y, x) == 3 || count_walls(y, x) == 1){
-//                vertices++;
-//            }
-//            // left || right and upper wall || lower wall
-//            else if ( (walls[y][x][0]->pen() == Qt::NoPen || walls[y][x][3]->pen() == Qt::NoPen) && (walls[y][x][1]->pen() == Qt::NoPen || walls[y][x][2]->pen() == Qt::NoPen) ){
-//                vertices++;
-//            }
-//        }
-//    }
-//}
+// what if follower catches green square?
+// what if green square wins?
+// reset follower position
+// make every time bigger grid
+// set 0,0 position color to red at start

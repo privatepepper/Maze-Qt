@@ -43,6 +43,7 @@ private slots:
     void on_radioButton_toggled(bool checked);
 
 private:
+
     Ui::MainWindow *ui;
 
     QGraphicsScene *scene;
@@ -101,7 +102,6 @@ private:
     // using for backtracking
     QVector < QPair <int, int> > memorize;
     QVector < QPair <int, int> > memorize_solve_function;
-    QVector < QPair <int, int> > save_path;
 
     // background colors, using to change colors of paths.
     QVector < QVector < QGraphicsRectItem* > > background_color_squares;
@@ -117,19 +117,22 @@ private:
 
     // Graph implementation
 
-   // QVector < QVector < int > > graph;
-   // void count_vertices();
-   // QVector < QVector <int> > stored_vertices;
-    int vertices = 0;
-    void graph_maker();
-    int count_walls(int y, int x);
-    QPair <int, int>  dijkstra_algorithm(int start_y, int start_x, int end_y, int end_x);
     QList <int> *my_list;
+    int vertices = 0;
+    int count_walls(int y, int x);
+    void graph_maker();
+
+    // path finder
+    QPair <int, int>  path_finder(int start_y, int start_x, int end_y, int end_x);
+
     QVector <QPair <int, int> > my_path;
+
     int current_vertice;
     int next_vertice;
+
     QVector < int > visited_vertices;
     int random_neighbour_vertice(int pos);
+
     int current_red_y;
     int current_red_x;
     int next_red_y;
