@@ -1,5 +1,7 @@
 #include "mainwindow.h"
 #include "ui_mainwindow.h"
+#include "Graph.h"
+
 #include <QFrame>
 #include <QLineEdit>
 #include <QIntValidator>
@@ -36,12 +38,17 @@ MainWindow::MainWindow(QWidget *parent)
 
     ui->setupUi(this);
 
-    int random_square_size = (qrand() & 80) + 20;
+
+    int random_square_size = 110;  // (qrand() & 150) + 20;  (qrand() % 150) + 20;
     maze_width = 1300 / random_square_size;
     maze_height = 700 / random_square_size;
     square_size = random_square_size;
     next_square_y = 0;
     next_square_x = 0;
+    current_red_x = 0;
+    current_red_y = 0;
+    next_red_y = 0;
+    next_red_x = 0;
 
     scene = new QGraphicsScene(this);
     scene->setBackgroundBrush(QColor(11, 19, 43));
@@ -131,6 +138,12 @@ MainWindow::MainWindow(QWidget *parent)
     timer1 = new QTimer(this);
     connect(timer1, SIGNAL(timeout()), this, SLOT(solve_slot()));
 
+    timer2 = new QTimer(this);
+    connect(timer2, SIGNAL(timeout()), this, SLOT(follower()));
+
+    timer2->start(200);
+
+    previous_square_cord = {0, 0};
 }
 
 MainWindow::~MainWindow()
@@ -148,10 +161,9 @@ void MainWindow::on_pushButton_clicked()
     }else {
 
         timer->start(1);
+        timer_is_on = 1;
 
     }
-
-
 }
 
 void MainWindow::MySlot()
@@ -227,6 +239,10 @@ void MainWindow::MySlot()
         background_color_squares[next_square_y][next_square_x]->setBrush(maze_background_color);
         background_color_squares[maze_height - 1][maze_width - 1]->setBrush(last_square_background_color);
         timer->stop();
+        current_square_y = 0;
+        current_square_x = 0;
+        timer_is_on = 0;
+        graph_maker();
     }
 
 
@@ -294,10 +310,10 @@ void MainWindow::reset_background_color()
 {
     for (int y = 0; y < maze_height; y++){
         for (int x = 0; x < maze_width; x++){
-            background_color_squares[y][x]->setBrush(maze_background_color);
+            background_color_squares[y][x]->setBrush(QColor(11, 19, 43));
         }
     }
-    background_color_squares[maze_height - 1][maze_width - 1]->setBrush(last_square_background_color);
+   // background_color_squares[maze_height - 1][maze_width - 1]->setBrush(last_square_background_color);
 }
 
 void MainWindow::reset_visited_walls()
@@ -322,6 +338,7 @@ void MainWindow::reset_walls()
     }
 }
 
+
 // Solve button
 void MainWindow::on_pushButton_2_clicked()
 {
@@ -336,6 +353,7 @@ void MainWindow::on_pushButton_2_clicked()
         current_square_y = 0;
         current_square_x = 0;
         timer1->start(10);
+        timer1_is_on = 1;
     }
 
 }
@@ -377,19 +395,21 @@ void MainWindow::solve_slot()
         current_square = walls[current_square_y][current_square_x];
 
         next_square = legal_move(next_square_y, next_square_x);
-       //
+
         count = 0;
     }
 
     if (next_square_y == maze_height - 1 && next_square_x == maze_width - 1){
         timer1->stop();
+        timer1_is_on = 0;
         background_color_squares[current_square_y][current_square_x]->setBrush(start_and_path_background_color);
+        current_square_y = 0;
+        current_square_x = 0;
         background_color_squares[memorize_y][memorize_x]->setBrush(maze_background_color);
         background_color_squares[maze_height - 1][maze_width - 1]->setBrush(head);
     }
 
 }
-
 
 QVector<QGraphicsLineItem *> MainWindow::legal_move(int y, int x)
 {
@@ -427,6 +447,8 @@ QVector<QGraphicsLineItem *> MainWindow::legal_move(int y, int x)
 
 
 }
+
+
 
 void MainWindow::instant_maze_generation()
 {
@@ -504,6 +526,8 @@ void MainWindow::instant_maze_generation()
         if (!unvisited_squares()){
             background_color_squares[next_square_y][next_square_x]->setBrush(background_color);
             background_color_squares[maze_height - 1][maze_width - 1]->setBrush(last_square_background_color);
+            current_square_y = 0;
+            current_square_x = 0;
             break;
         }
     }
@@ -547,10 +571,100 @@ void MainWindow::instant_solve()
         if (next_square_y == maze_height - 1 && next_square_x == maze_width - 1){
             background_color_squares[maze_height - 1][maze_width - 1]->setBrush(head);
             background_color_squares[0][0]->setBrush(Qt::blue);
+            current_square_y = 0;
+            current_square_x = 0;
             break;
         }
     }
 
+}
+
+void MainWindow::keyPressEvent(QKeyEvent *event)
+{
+    switch (event->key()) {
+    case Qt::Key_W:
+        if (current_square_y != 0 && is_legal_move(current_square_y, current_square_x, current_square_y -1, current_square_x)){
+
+            current_square_y--;
+
+            background_color_squares[current_square_y][current_square_x]->setBrush(start_and_path_background_color);
+            background_color_squares[previous_square_cord.first][previous_square_cord.second]->setBrush(maze_background_color);
+            previous_square_cord = {current_square_y, current_square_x};
+
+            square_moved++;
+
+        }break;
+    case Qt::Key_S:
+        if (current_square_y != maze_height - 1 && is_legal_move(current_square_y, current_square_x, current_square_y + 1, current_square_x)){
+
+            current_square_y++;
+
+            background_color_squares[current_square_y][current_square_x]->setBrush(start_and_path_background_color);
+            background_color_squares[previous_square_cord.first][previous_square_cord.second]->setBrush(maze_background_color);
+            previous_square_cord = {current_square_y, current_square_x};
+
+            square_moved++;
+
+        }break;
+    case Qt::Key_D:
+        if (current_square_x != maze_width - 1 && is_legal_move(current_square_y, current_square_x, current_square_y, current_square_x + 1)){
+
+            current_square_x++;
+
+            background_color_squares[current_square_y][current_square_x]->setBrush(start_and_path_background_color);
+            background_color_squares[previous_square_cord.first][previous_square_cord.second]->setBrush(maze_background_color);
+            previous_square_cord = {current_square_y, current_square_x};
+
+            square_moved++;
+
+        }break;
+
+    case Qt::Key_A:
+        if (current_square_x != 0 && is_legal_move(current_square_y, current_square_x, current_square_y, current_square_x - 1)){
+
+            current_square_x--;
+
+            background_color_squares[current_square_y][current_square_x]->setBrush(start_and_path_background_color);
+            background_color_squares[previous_square_cord.first][previous_square_cord.second]->setBrush(maze_background_color);
+            previous_square_cord = {current_square_y, current_square_x};
+
+            square_moved++;
+        }break;
+    }
+    if (won_game()){
+
+        on_pushButton_3_clicked();
+    }
+}
+
+bool MainWindow::won_game()
+{
+    if (current_square_y == maze_height - 1 && current_square_x == maze_width - 1){
+        return true;
+    }
+    return false;
+}
+
+
+bool MainWindow::is_legal_move(int y, int x, int y1, int x1)
+{
+    // left
+    if (walls[y][x][1]->pen() == Qt::NoPen && x - x1 == 1){
+        return true;
+    }
+    // right
+    if (walls[y][x][2]->pen() == Qt::NoPen && x - x1 == -1){
+        return true;
+    }
+    // up
+    if (walls[y][x][0]->pen() == Qt::NoPen && y - y1 == 1){
+        return true;
+    }
+    // down
+    if (walls[y][x][3]->pen() == Qt::NoPen && y - y1 == -1){
+        return true;
+    }
+    return false;
 }
 
 void MainWindow::on_pushButton_3_clicked()
@@ -560,6 +674,12 @@ void MainWindow::on_pushButton_3_clicked()
     memorize.resize(0);
     memorize_solve_function.resize(0);
     reset_walls();
+    current_square_y = 0;
+    current_square_x = 0;
+    previous_square_cord = {0, 0};
+    save_path.resize(0);
+    square_moved = 0;
+    element_pos = 0;
 }
 
 void MainWindow::on_actiontest_triggered()
@@ -582,3 +702,193 @@ void MainWindow::on_actionDark_triggered()
 }
 
 
+
+void MainWindow::on_radioButton_toggled(bool checked)
+{
+    if (checked && timer_is_on == 1){
+        reset_visited_walls();
+        reset_background_color();
+        memorize.resize(0);
+        memorize_solve_function.resize(0);
+        reset_walls();
+        timer->stop();
+        instant_maze_generation();
+        timer_is_on = 0;
+    }
+}
+
+void MainWindow::follower()
+{
+    if (square_moved >= 5){
+        int y = current_square_y;
+        int x = current_square_x;
+        background_color_squares[current_red_y][current_red_x]->setBrush((QColor(28, 37, 65)));
+        next_red_y = dijkstra_algorithm(current_red_y, current_red_x, y, x).first;
+        next_red_x = dijkstra_algorithm(current_red_y, current_red_x, y, x).second;
+        background_color_squares[next_red_y][next_red_x]->setBrush(head);
+        current_red_y = next_red_y;
+        current_red_x = next_red_x;
+    }
+
+}
+
+void MainWindow::graph_maker()
+{
+   int pos = 0;
+   reset_visited_walls();
+   Graph my_graph(maze_width * maze_height);
+   for (int y = 0; y < maze_height; y++){
+       for (int x = 0; x < maze_width; x++){
+           visited_walls[y][x] = 1;
+           if ( walls[y][x][0]->pen() == Qt::NoPen && visited_walls[y - 1][x] == 0){
+              // visited_walls[y - 1][x] = 1;
+               my_graph.addEdge(pos, pos - maze_width);
+
+           }
+           if ( walls[y][x][1]->pen() == Qt::NoPen && visited_walls[y][x - 1] == 0 ){
+              // visited_walls[y][x - 1] = 1;
+               my_graph.addEdge(pos, pos + 1);
+
+           }
+           if ( walls[y][x][2]->pen() == Qt::NoPen && visited_walls[y][x + 1] == 0 ){
+              // visited_walls[y][x + 1] = 1;
+               my_graph.addEdge(pos, pos + 1);
+
+           }
+           if ( walls[y][x][3]->pen() == Qt::NoPen && visited_walls[y + 1][x] == 0 ){
+              // visited_walls[y + 1][x] = 1;
+               my_graph.addEdge(pos, pos + maze_width);
+           }
+           pos++;
+       }
+   }
+   my_list = my_graph.get_list();
+
+//   QVector <QPair <int, int> >test = dijkstra_algorithm(0, 0, maze_height - 1, maze_width - 1);
+//   QString s;
+//   for (int i = 0; i < test.size(); i++){
+//       s.append("(" + QString::number(test[i].first) + ", " + QString::number(test[i].second) + ")" + "\n");
+//   }
+//   QMessageBox::about(this, "t", s);
+
+}
+
+int MainWindow::count_walls(int y, int x)
+{
+    int walls_counter = 0;
+    for (int i = 0;i < 4; i++){
+        if (walls[y][x][i]->pen() == Qt::NoPen){
+            walls_counter++;
+        }
+    }
+    return walls_counter;
+}
+
+
+
+QPair<int, int>  MainWindow::dijkstra_algorithm(int start_y, int start_x, int end_y, int end_x)
+{
+    visited_vertices.resize(0);
+    for (int i = 0;i < maze_width * maze_height; i++){
+        visited_vertices.push_back(0);
+    }
+
+    int graph_start_index = (start_y * maze_width) + start_x;
+    int graph_end_index = (end_y * maze_width) + end_x;
+
+    current_vertice = graph_start_index;
+    next_vertice = graph_start_index;
+
+    my_path.resize(0);
+
+    while (true) {
+        current_vertice = next_vertice;
+        visited_vertices[current_vertice] = 1;
+
+        my_path.push_back({current_vertice / maze_width, current_vertice % maze_width});
+
+        if (random_neighbour_vertice(current_vertice) >= 0){
+            next_vertice = random_neighbour_vertice(current_vertice);
+            visited_vertices[next_vertice];
+        }
+        // if stuck, go back
+        while (random_neighbour_vertice(current_vertice) == -1){
+            my_path.pop_back();
+            current_vertice = (my_path[my_path.size() - 1].first * maze_width) + my_path[my_path.size() - 1].second;
+            if (random_neighbour_vertice(current_vertice) >= 0){
+                next_vertice = random_neighbour_vertice(current_vertice);
+                break;
+            }
+        }
+
+        // if finds the square, return it
+        if (next_vertice == graph_end_index){
+            return my_path[1];
+        }
+    }
+
+}
+
+int MainWindow::random_neighbour_vertice(int pos)
+{
+    int size = my_list[pos].size() - 1;
+    QVector < int > vertices_func;
+    vertices_func.resize(0);
+
+    if (size == 3 && visited_vertices[my_list[pos][3]] == 0){
+        vertices_func.push_back(my_list[pos][3]);
+    }
+    if (size >= 2 && visited_vertices[my_list[pos][2]] == 0){
+        vertices_func.push_back(my_list[pos][2]);
+    }
+    if (size >= 1 && visited_vertices[my_list[pos][1]] == 0){
+        vertices_func.push_back(my_list[pos][1]);
+    }
+    if (size >= 0 && visited_vertices[my_list[pos][0]] == 0){
+        vertices_func.push_back(my_list[pos][0]);
+    }
+    if (vertices_func.size() == 0){
+        return -1;
+    }
+
+    return vertices_func[(qrand() % vertices_func.size())];
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+//void MainWindow::count_vertices()
+//{
+//    vertices = 0;
+//    for (int y = 0; y < maze_height; y++){
+//        for (int x = 0; x < maze_width; x++){
+
+//            // start && end position is always a vertice
+//            if ((y == 0 && x == 0) || (y == maze_height - 1 && x == maze_width - 1)){
+//                vertices++;
+//            }
+//            // counts walls which doesn't have wall/border, ups:)
+//            else if (count_walls(y, x) == 3 || count_walls(y, x) == 1){
+//                vertices++;
+//            }
+//            // left || right and upper wall || lower wall
+//            else if ( (walls[y][x][0]->pen() == Qt::NoPen || walls[y][x][3]->pen() == Qt::NoPen) && (walls[y][x][1]->pen() == Qt::NoPen || walls[y][x][2]->pen() == Qt::NoPen) ){
+//                vertices++;
+//            }
+//        }
+//    }
+//}

@@ -20,6 +20,7 @@ SOURCES += \
     mainwindow.cpp
 
 HEADERS += \
+    Graph.h \
     mainwindow.h
 
 FORMS += \
