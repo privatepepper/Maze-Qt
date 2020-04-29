@@ -24,6 +24,9 @@ MainWindow::MainWindow(QWidget *parent)
     : QMainWindow(parent)
     , ui(new Ui::MainWindow)
 {
+
+    this->setFocusPolicy(Qt::StrongFocus);
+
     // colors
 
     maze_background_color = QBrush(QColor(28, 37, 65)); // grayish maze squares background  color
@@ -38,8 +41,7 @@ MainWindow::MainWindow(QWidget *parent)
 
     ui->setupUi(this);
 
-
-    int random_square_size = (qrand() % 150) + 20;  //100;  //(qrand() % 150) + 20;
+    int random_square_size = (qrand() % 150) + 20;
     maze_width = 1300 / random_square_size;
     maze_height = 700 / random_square_size;
     square_size = random_square_size;
@@ -585,8 +587,9 @@ void MainWindow::instant_solve()
 
 void MainWindow::keyPressEvent(QKeyEvent *event)
 {
+
     switch (event->key()) {
-    case Qt::Key_W:
+        case Qt::Key_Up: case Qt::Key_W:
         if (current_square_y != 0 && is_legal_move(current_square_y, current_square_x, current_square_y -1, current_square_x)){
 
             current_square_y--;
@@ -598,7 +601,7 @@ void MainWindow::keyPressEvent(QKeyEvent *event)
             square_moved++;
 
         }break;
-    case Qt::Key_S:
+        case Qt::Key_Down: case Qt::Key_S:
         if (current_square_y != maze_height - 1 && is_legal_move(current_square_y, current_square_x, current_square_y + 1, current_square_x)){
 
             current_square_y++;
@@ -610,7 +613,7 @@ void MainWindow::keyPressEvent(QKeyEvent *event)
             square_moved++;
 
         }break;
-    case Qt::Key_D:
+        case Qt::Key_Right: case Qt::Key_D:
         if (current_square_x != maze_width - 1 && is_legal_move(current_square_y, current_square_x, current_square_y, current_square_x + 1)){
 
             current_square_x++;
@@ -623,7 +626,7 @@ void MainWindow::keyPressEvent(QKeyEvent *event)
 
         }break;
 
-    case Qt::Key_A:
+        case Qt::Key_Left: case Qt::Key_A:
         if (current_square_x != 0 && is_legal_move(current_square_y, current_square_x, current_square_y, current_square_x - 1)){
 
             current_square_x--;
@@ -802,8 +805,6 @@ void MainWindow::graph_maker()
 
    my_list = my_graph.get_list();
 
-//   QPair <int, int> test = path_finder(0, 0, 0, 0);
-//   QString s;
 
 }
 
@@ -899,20 +900,3 @@ int MainWindow::random_neighbour_vertice(int pos)
     return vertices_func[(qrand() % vertices_func.size())];
 }
 
-
-
-
-
-
-
-
-
-
-
-
-
-// what if follower catches green square?
-// what if green square wins?
-// reset follower position
-// make every time bigger grid
-// set 0,0 position color to red at start
