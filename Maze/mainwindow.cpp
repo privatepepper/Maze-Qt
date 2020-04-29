@@ -39,7 +39,7 @@ MainWindow::MainWindow(QWidget *parent)
     ui->setupUi(this);
 
 
-    int random_square_size =  (qrand() % 150) + 20;
+    int random_square_size = (qrand() % 150) + 20;  //100;  //(qrand() % 150) + 20;
     maze_width = 1300 / random_square_size;
     maze_height = 700 / random_square_size;
     square_size = random_square_size;
